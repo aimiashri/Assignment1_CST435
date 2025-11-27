@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package text_pipeline;
+
+// --- Messages for the pipeline ---
+
+// The primary message carrying text through the pipeline
+message PipelineText {
+  string original_text = 1;      // The original input text
+  string processed_text = 2;     // Text after being processed by the current service
+  map<string, string> metadata = 3; // Used to carry timestamps, flags, or results between services
+}
+
+// --- Services ---
+
+// Service 1: Input Validator Service
+service Validator {
+  rpc ValidateAndPass(PipelineText) returns (PipelineText);
+}
+
+// Service 2: String Reverser Service
+service Reverser {
+  rpc ReverseAndPass(PipelineText) returns (PipelineText);
+}
+
+// Service 3: Transformer Service
+service Transformer {
+  rpc TransformAndPass(PipelineText) returns (PipelineText);
+}
+
+// Service 4: Analyzer Service
+service Analyzer {
+  rpc AnalyzeAndPass(PipelineText) returns (PipelineText);
+}
+
+// Service 5: Formatter Service (Corrected name)
+service Formatter {
+  rpc FormatOutput(PipelineText) returns (PipelineText);
+}

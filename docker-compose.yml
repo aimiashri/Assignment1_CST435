@@ -1,0 +1,95 @@
+
+
+services:
+  # ------------------------------------------------------------------
+  # Service 1: Validator (Entry Point)
+  validator-service:
+    image: validator-service
+    build: 
+      #context: ./validator-service/app  # Path to the Dockerfile
+      context: ./validator-service
+      dockerfile: app/Dockerfile
+    ports:
+      - "50052:50052" # Expose S1's gRPC port to the host for client testing
+      - "8080:8080"   # Expose S1's REST port for comparison/testing
+    environment:
+      # S1 calls S2 using the service name 'reverser-service'
+      REVERSER_SERVICE_ADDRESS: dns:///reverser-service:50053
+      GRPC_DNS_RESOLVER: native
+    networks:
+      - pipeline_network
+    # Optional: helps ensure S2 is running before S1 tries to connect
+    depends_on:
+      - reverser-service
+
+  # ------------------------------------------------------------------
+  # Service 2: Reverser
+  reverser-service:
+    image: reverser-service
+    build: 
+      context: ./reverser-service
+      dockerfile: app/Dockerfile
+    expose:
+      - "50053" # Expose internally for the network
+      - "8081"
+    environment:
+      TRANSFORMER_SERVICE_ADDRESS: dns:///transformer-service:50054
+      GRPC_DNS_RESOLVER: native
+    networks:
+      - pipeline_network
+    depends_on:
+      - transformer-service
+
+  # ------------------------------------------------------------------
+  # Service 3: Transformer
+  transformer-service:
+    image: transformer-service
+    build: 
+      context: ./transformer-service
+      dockerfile: app/Dockerfile
+    expose:
+      - "50054"
+      - "8082"
+    environment:
+      ANALYZER_SERVICE_ADDRESS: dns:///analyzer-service:50055
+      GRPC_DNS_RESOLVER: native
+    networks:
+      - pipeline_network
+    depends_on:
+      - analyzer-service
+
+  # ------------------------------------------------------------------
+  # Service 4: Analyzer
+  analyzer-service:
+    image: analyzer-service
+    build: 
+      context: ./analyzer-service
+      dockerfile: app/Dockerfile
+    expose:
+      - "50055"
+      - "8083"
+    environment:
+      FORMATTER_SERVICE_ADDRESS: dns:///formatter-service:50056
+      GRPC_DNS_RESOLVER: native
+    networks:
+      - pipeline_network
+    depends_on:
+      - formatter-service
+
+  # ------------------------------------------------------------------
+  # Service 5: Formatter (Exit Point)
+  formatter-service:
+    image: formatter-service
+    build: 
+      context: ./formatter-service
+      dockerfile: app/Dockerfile
+    expose:
+      - "50056"
+      - "8084"
+    networks:
+      - pipeline_network
+
+# Define a single network for inter-service communication
+networks:
+  pipeline_network:
+    driver: bridge
